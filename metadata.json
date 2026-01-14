@@ -1,0 +1,7 @@
+{
+  "name": "HH Construction",
+  "description": "Luxury basement transformations and income suites in London-Middlesex & Kitchener.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
