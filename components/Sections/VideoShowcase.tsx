@@ -37,8 +37,7 @@ const VideoShowcase: React.FC = () => {
                                 preload="metadata"
                                 poster="https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2662&auto=format&fit=crop"
                             >
-                                {/* Replace with your first ad video URL */}
-                                <source src="/videos/HH-Intro%20Ad.mp4" type="video/mp4" />
+                                <source src="/videos/hh-intro-ad.mp4" type="video/mp4" />
                                 Your browser does not support the video tag.
                             </video>
                         </div>
@@ -71,8 +70,7 @@ const VideoShowcase: React.FC = () => {
                                 preload="metadata"
                                 poster="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2053&auto=format&fit=crop"
                             >
-                                {/* Replace with your second ad video URL */}
-                                <source src="/videos/HH%20Wall%20add-on.mp4" type="video/mp4" />
+                                <source src="/videos/hh-wall-addon.mp4" type="video/mp4" />
                                 Your browser does not support the video tag.
                             </video>
                         </div>
