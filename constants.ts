@@ -27,10 +27,10 @@ export const SERVICE_TIERS: ServiceTier[] = [
   },
   {
     id: 4,
-    name: "Investor BRRR",
+    name: "Investor BRRRR",
     priceRange: "Consultation",
     description: "Maximize returns with turnkey rental-ready units in 9 weeks.",
-    imageUrl: "https://images.unsplash.com/photo-1484154218962-a1c002085d2f?q=80&w=2071&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1593696140826-c58b712213d5?q=80&w=2070&auto=format&fit=crop",
     features: ["Rapid Timeline", "Forced Appreciation", "Tenant Ready", "Full Permits"]
   }
 ];

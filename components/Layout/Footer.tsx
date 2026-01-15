@@ -11,10 +11,10 @@ const Footer: React.FC = () => {
       {/* Top Row */}
       <div className="flex justify-between items-start mb-16">
         <div className="text-red-600 w-24">
-           <LogoIcon className="w-full h-auto" />
+          <LogoIcon className="w-full h-auto" />
         </div>
-        
-        <button 
+
+        <button
           onClick={scrollToTop}
           className="group flex items-center gap-3 text-sm uppercase tracking-widest text-[#f5f5f5] hover:text-red-500 transition-colors"
         >
@@ -28,9 +28,9 @@ const Footer: React.FC = () => {
         {/* Navigation Links */}
         <nav className="flex flex-col space-y-4">
           {['Home', 'Services', 'Projects', 'Investors', 'Contact'].map((item) => (
-            <a 
-              key={item} 
-              href="#" 
+            <a
+              key={item}
+              href="#"
               className="text-3xl md:text-5xl font-display text-[#f5f5f5] hover:text-red-500 transition-colors"
             >
               {item}
@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
             <div>
               <dt className="text-xs uppercase tracking-[2px] mb-4 text-[#adaaaa]">Connect</dt>
               <dd className="flex gap-4">
-                <a href="#" className="hover:text-red-500 transition-colors">
+                <a href="https://www.instagram.com/hhconstruction__/" target="_blank" rel="noopener noreferrer" className="hover:text-red-500 transition-colors">
                   <InstagramIcon className="w-6 h-6" />
                 </a>
               </dd>

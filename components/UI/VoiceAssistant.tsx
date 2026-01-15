@@ -94,7 +94,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
   const outputContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourceNodesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  
+
   // Refs for mic control
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -128,28 +128,28 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
     if (isListening) return;
 
     try {
-        console.log("Starting microphone...");
-        const inputCtx = inputContextRef.current;
-        const stream = streamRef.current;
-        
-        const source = inputCtx.createMediaStreamSource(stream);
-        const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
-        
-        scriptProcessor.onaudioprocess = (e) => {
-          if (!activeSessionRef.current) return;
-          const inputData = e.inputBuffer.getChannelData(0);
-          const pcmBlob = createBlob(inputData);
-          activeSessionRef.current.sendRealtimeInput({ media: pcmBlob });
-        };
-        
-        source.connect(scriptProcessor);
-        scriptProcessor.connect(inputCtx.destination);
-        
-        mediaStreamSourceRef.current = source;
-        scriptProcessorRef.current = scriptProcessor;
-        setIsListening(true);
+      console.log("Starting microphone...");
+      const inputCtx = inputContextRef.current;
+      const stream = streamRef.current;
+
+      const source = inputCtx.createMediaStreamSource(stream);
+      const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
+
+      scriptProcessor.onaudioprocess = (e) => {
+        if (!activeSessionRef.current) return;
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcmBlob = createBlob(inputData);
+        activeSessionRef.current.sendRealtimeInput({ media: pcmBlob });
+      };
+
+      source.connect(scriptProcessor);
+      scriptProcessor.connect(inputCtx.destination);
+
+      mediaStreamSourceRef.current = source;
+      scriptProcessorRef.current = scriptProcessor;
+      setIsListening(true);
     } catch (err) {
-        console.error("Error starting mic:", err);
+      console.error("Error starting mic:", err);
     }
   };
 
@@ -157,11 +157,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
     setIsActive(false);
     setIsSpeaking(false);
     setIsListening(false);
-    
+
     // Close session
     if (activeSessionRef.current) {
-        activeSessionRef.current.close();
-        activeSessionRef.current = null;
+      activeSessionRef.current.close();
+      activeSessionRef.current = null;
     }
 
     // Disconnect Mic
@@ -169,23 +169,23 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
     scriptProcessorRef.current = null;
     mediaStreamSourceRef.current?.disconnect();
     mediaStreamSourceRef.current = null;
-    
+
     // Stop tracks
     if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
 
     // Close audio contexts
     if (inputContextRef.current) {
-        inputContextRef.current.close();
-        inputContextRef.current = null;
+      inputContextRef.current.close();
+      inputContextRef.current = null;
     }
     if (outputContextRef.current) {
-        outputContextRef.current.close();
-        outputContextRef.current = null;
+      outputContextRef.current.close();
+      outputContextRef.current = null;
     }
-    
+
     // Stop playing audio
     sourceNodesRef.current.forEach(node => node.stop());
     sourceNodesRef.current.clear();
@@ -201,16 +201,30 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
       setIsActive(true);
       setIsListening(false);
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Get API key from environment
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+      if (!apiKey) {
+        const msg = "Voice assistant unavailable: API key not configured. Please contact support.";
+        console.error("VITE_GEMINI_API_KEY is not set in environment variables");
+        setError(msg);
+        setIsActive(false);
+        return;
+      }
+
+      console.log("Initializing Gemini Client...");
+      const ai = new GoogleGenAI({ apiKey });
 
       // 1. Initialize Audio Contexts immediately to capture user gesture
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      
+      const InputContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const inputCtx = new InputContextClass({ sampleRate: 16000 });
+      const OutputContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const outputCtx = new OutputContextClass({ sampleRate: 24000 });
+
       // CRITICAL: Resume contexts immediately to prevent browser autoplay blocks
       if (inputCtx.state === 'suspended') await inputCtx.resume();
       if (outputCtx.state === 'suspended') await outputCtx.resume();
-      
+
       inputContextRef.current = inputCtx;
       outputContextRef.current = outputCtx;
 
@@ -236,14 +250,14 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
           onmessage: async (message: LiveServerMessage) => {
             // Handle Interruption
             if (message.serverContent?.interrupted) {
-                console.log("Interruption detected");
-                sourceNodesRef.current.forEach(node => {
-                    try { node.stop(); } catch(e){}
-                });
-                sourceNodesRef.current.clear();
-                nextStartTimeRef.current = 0;
-                setIsSpeaking(false);
-                return;
+              console.log("Interruption detected");
+              sourceNodesRef.current.forEach(node => {
+                try { node.stop(); } catch (e) { }
+              });
+              sourceNodesRef.current.clear();
+              nextStartTimeRef.current = 0;
+              setIsSpeaking(false);
+              return;
             }
 
             // Handle Tool Calls
@@ -252,11 +266,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
                 if (fc.name === 'openBookingModal') {
                   onOpenBooking();
                   activeSessionRef.current?.sendToolResponse({
-                      functionResponses: {
-                        id: fc.id,
-                        name: fc.name,
-                        response: { result: "Booking modal opened successfully." }
-                      }
+                    functionResponses: {
+                      id: fc.id,
+                      name: fc.name,
+                      response: { result: "Booking modal opened successfully." }
+                    }
                   });
                 }
               }
@@ -266,11 +280,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (base64Audio) {
               setIsSpeaking(true);
-              
+
               const audioCtx = outputContextRef.current;
               if (audioCtx) {
                 nextStartTimeRef.current = Math.max(nextStartTimeRef.current, audioCtx.currentTime);
-                
+
                 const audioBuffer = await decodeAudioData(
                   decode(base64Audio),
                   audioCtx,
@@ -281,11 +295,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffer;
                 source.connect(audioCtx.destination);
-                
+
                 source.addEventListener('ended', () => {
                   sourceNodesRef.current.delete(source);
                   if (sourceNodesRef.current.size === 0) {
-                      setIsSpeaking(false);
+                    setIsSpeaking(false);
                   }
                 });
 
@@ -331,12 +345,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
       {/* Floating Action Button */}
       {!isActive && (
         <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end">
-          
+
           {/* Welcome Tooltip */}
           {showTooltip && (
             <div className="mb-4 mr-2 animate-fade-in-up origin-bottom-right">
               <div className="bg-white text-[#1c1c1c] p-4 rounded-xl shadow-2xl border border-gray-200 relative max-w-[260px]">
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setShowTooltip(false); }}
                   className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1"
                   aria-label="Close message"
@@ -346,9 +360,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
                   </svg>
                 </button>
                 <div className="pr-4">
-                   <p className="text-sm font-medium leading-relaxed">
-                     Hey, welcome to HH Rentals. Press me right here if you need more assistance and voice.
-                   </p>
+                  <p className="text-sm font-medium leading-relaxed">
+                    Hey, welcome to HH Construction. Press me right here if you need more assistance and voice.
+                  </p>
                 </div>
                 {/* Arrow pointing down */}
                 <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white transform rotate-45 border-b border-r border-gray-200"></div>
@@ -362,30 +376,30 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
             aria-label="Start Voice Assistant"
           >
             <div className="absolute inset-0 rounded-full border border-red-500/30 animate-ping opacity-20 group-hover:opacity-40"></div>
-            
+
             {/* Gemini Sparkles */}
             <div className="absolute inset-0 pointer-events-none">
-               <svg 
-                 viewBox="0 0 24 24" 
-                 fill="white" 
-                 className={`absolute top-2 right-3 w-2.5 h-2.5 opacity-80 ${introMode ? 'animate-[pulse_0.4s_ease-in-out_infinite]' : 'animate-[pulse_2s_ease-in-out_infinite]'}`}
-               >
-                  <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
-               </svg>
-               <svg 
-                 viewBox="0 0 24 24" 
-                 fill="white" 
-                 className={`absolute bottom-3 left-3 w-1.5 h-1.5 opacity-60 ${introMode ? 'animate-[pulse_0.6s_ease-in-out_infinite_0.1s]' : 'animate-[pulse_3s_ease-in-out_infinite_0.5s]'}`}
-               >
-                  <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
-               </svg>
-               <svg 
-                 viewBox="0 0 24 24" 
-                 fill="#EF4444" 
-                 className={`absolute top-3 left-4 w-1 h-1 opacity-70 ${introMode ? 'animate-[pulse_0.5s_ease-in-out_infinite_0.2s]' : 'animate-[pulse_1.5s_ease-in-out_infinite_1s]'}`}
-               >
-                  <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
-               </svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="white"
+                className={`absolute top-2 right-3 w-2.5 h-2.5 opacity-80 ${introMode ? 'animate-[pulse_0.4s_ease-in-out_infinite]' : 'animate-[pulse_2s_ease-in-out_infinite]'}`}
+              >
+                <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
+              </svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="white"
+                className={`absolute bottom-3 left-3 w-1.5 h-1.5 opacity-60 ${introMode ? 'animate-[pulse_0.6s_ease-in-out_infinite_0.1s]' : 'animate-[pulse_3s_ease-in-out_infinite_0.5s]'}`}
+              >
+                <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
+              </svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="#EF4444"
+                className={`absolute top-3 left-4 w-1 h-1 opacity-70 ${introMode ? 'animate-[pulse_0.5s_ease-in-out_infinite_0.2s]' : 'animate-[pulse_1.5s_ease-in-out_infinite_1s]'}`}
+              >
+                <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
+              </svg>
             </div>
 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-500 relative z-10">
@@ -413,27 +427,27 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
 
             {/* Visualizer */}
             <div className="h-12 flex items-center justify-center gap-1 mb-4">
-               {isSpeaking ? (
-                 <>
-                   <div className="w-1 h-3 bg-red-500 rounded-full animate-[bounce_1s_infinite]"></div>
-                   <div className="w-1 h-6 bg-red-500 rounded-full animate-[bounce_1.2s_infinite]"></div>
-                   <div className="w-1 h-4 bg-red-500 rounded-full animate-[bounce_0.8s_infinite]"></div>
-                   <div className="w-1 h-7 bg-red-500 rounded-full animate-[bounce_1.1s_infinite]"></div>
-                   <div className="w-1 h-3 bg-red-500 rounded-full animate-[bounce_0.9s_infinite]"></div>
-                 </>
-               ) : !isListening ? (
-                  <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
-                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse delay-100"></div>
-                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse delay-200"></div>
-                  </div>
-               ) : (
-                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse delay-75"></div>
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse delay-150"></div>
-                 </div>
-               )}
+              {isSpeaking ? (
+                <>
+                  <div className="w-1 h-3 bg-red-500 rounded-full animate-[bounce_1s_infinite]"></div>
+                  <div className="w-1 h-6 bg-red-500 rounded-full animate-[bounce_1.2s_infinite]"></div>
+                  <div className="w-1 h-4 bg-red-500 rounded-full animate-[bounce_0.8s_infinite]"></div>
+                  <div className="w-1 h-7 bg-red-500 rounded-full animate-[bounce_1.1s_infinite]"></div>
+                  <div className="w-1 h-3 bg-red-500 rounded-full animate-[bounce_0.9s_infinite]"></div>
+                </>
+              ) : !isListening ? (
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
+                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse delay-100"></div>
+                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse delay-200"></div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse delay-75"></div>
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse delay-150"></div>
+                </div>
+              )}
             </div>
 
             <p className="text-sm text-gray-400 text-center px-4 mb-2">
@@ -441,14 +455,14 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onOpenBooking }) => {
             </p>
             {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
 
-            <button 
+            <button
               onClick={onOpenBooking}
               className="mt-2 text-xs text-red-500 hover:text-white underline decoration-red-500/30 underline-offset-4 transition-colors"
             >
               Book Manually
             </button>
           </div>
-          
+
           <div className="h-1 w-full bg-gradient-to-r from-transparent via-red-900/50 to-transparent"></div>
         </div>
       )}
