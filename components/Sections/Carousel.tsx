@@ -145,7 +145,7 @@ const Carousel: React.FC<CarouselProps> = ({ onBookClick }) => {
               onClick={onBookClick}
               onMouseMove={(e) => handleMouseMove(e, index)}
               onMouseLeave={handleMouseLeave}
-              className="min-w-[320px] md:min-w-[450px] flex-shrink-0 cursor-pointer relative overflow-hidden snap-center rounded-xl"
+              className="w-[85vw] max-w-[320px] md:w-auto md:max-w-none md:min-w-[450px] flex-shrink-0 cursor-pointer relative overflow-hidden snap-center rounded-xl"
               style={{
                 transform: hoveredCard === index
                   ? `perspective(1000px) rotateY(${mousePos.x}deg) rotateX(${mousePos.y}deg) scale(1.02)`
